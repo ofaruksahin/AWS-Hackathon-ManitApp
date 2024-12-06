@@ -9,5 +9,7 @@
         public string Origin { get; set; }
         public string Destination { get; set; }
         public TimeSpan Time { get; set; }
+
+        public virtual ICollection<OrderVector> OrderVectors { get; set; }
     }
 }

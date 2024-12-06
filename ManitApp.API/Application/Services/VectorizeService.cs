@@ -39,15 +39,15 @@ namespace ManitApp.API.Application.Services
         {
             var requestVector = VectorizeRequest(requestModel);
 
-            var orderVectors = _context.OrderVector.ToList();
+            var orderVectors = _context.OrderVector.Include(ov => ov.Order).Where(ov => ov.Order.Gender == requestModel.Gender).ToList();
 
             var closestVectors = orderVectors
                 .Select(ov => new
                 {
                     OrderId = ov.OrderId,
-                    Distance = CalculateEuclideanDistance(requestVector, ov.Vector)
+                    Distance = CalculateEuclideanDistance(FloatToDouble(requestVector.Memory.ToArray()), FloatToDouble(ov.Vector.Memory.ToArray()))
                 })
-                .OrderBy(x => x.Distance) 
+                .OrderBy(x => x.Distance)
                 .Take(5)
                 .Select(ov => ov.OrderId)
                 .ToList();
@@ -63,37 +63,36 @@ namespace ManitApp.API.Application.Services
             }).ToList();
         }
 
-        private double[] VectorizeOrder(Order order)
+        private Pgvector.Vector VectorizeOrder(Order order)
         {
-            var genderEncoding = order.Gender ? 1.0 : 0.0;
+            var genderEncoding = order.Gender ? 1.0f : 0.0f;
             var originEncoding = order.Origin.GetHashCode();
             var destinationEncoding = order.Destination.GetHashCode();
-            var timeEncoding = order.Time.ToString().GetHashCode();
 
-            var vector = new double[]
-            {
-                order.UserId,
-                genderEncoding,
-                originEncoding,
-                destinationEncoding,
-                timeEncoding
-            };
-
-            return vector;
-        }
-
-        private double[] VectorizeRequest(SuggestionRequestModel requestModel)
-        {
-            var genderEncoding = requestModel.Gender ? 1.0 : 0.0;
-            var originEncoding = requestModel.Origin.GetHashCode();
-            var destinationEncoding = requestModel.Destination.GetHashCode();
-
-            return new double[]
+            var vector = new float[]
             {
                 genderEncoding,
                 originEncoding,
                 destinationEncoding
             };
+
+            return new Pgvector.Vector(vector);
+        }
+
+        private Pgvector.Vector VectorizeRequest(SuggestionRequestModel requestModel)
+        {
+            var genderEncoding = requestModel.Gender ? 1.0f : 0.0f;
+            var originEncoding = requestModel.Origin.GetHashCode();
+            var destinationEncoding = requestModel.Destination.GetHashCode();
+
+            var vector =  new float[]
+            {
+                genderEncoding,
+                originEncoding,
+                destinationEncoding
+            };
+
+            return new Pgvector.Vector(vector);
         }
 
         private static double CalculateEuclideanDistance(double[] vector1, double[] vector2)
@@ -101,6 +100,18 @@ namespace ManitApp.API.Application.Services
             var v1 = Vector<double>.Build.DenseOfArray(vector1);
             var v2 = Vector<double>.Build.DenseOfArray(vector2);
             return (v1 - v2).L2Norm(); // L2 normu: Euclidean mesafesi
+        }
+
+        private static double[] FloatToDouble(float[] floatArr)
+        {
+            double[] doubleArray = new double[floatArr.Length];
+
+            for (int i = 0; i < floatArr.Length; i++)
+            {
+                doubleArray[i] = (double)floatArr[i];
+            }
+
+            return doubleArray;
         }
     }
 }

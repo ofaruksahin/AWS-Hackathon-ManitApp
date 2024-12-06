@@ -20,11 +20,13 @@ namespace ManitApp.API.Infrastructure
             var connectionString = _configuration.GetConnectionString("ManitAppDbContext");
 
             optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-            optionsBuilder.UseNpgsql(connectionString);
+            optionsBuilder.UseNpgsql(connectionString, o => o.UseVector());
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.HasPostgresExtension("vector");
+
             #region Order
             modelBuilder.Entity<Order>()
                 .HasKey(p => p.Id);
@@ -82,8 +84,8 @@ namespace ManitApp.API.Infrastructure
 
             modelBuilder.Entity<OrderVector>()
                 .Property(p => p.Vector)
-                .HasColumnType("double[]")
-                .HasColumnName("vector");
+                .HasColumnName("vector")
+                .HasColumnType("vector(3)");
 
             modelBuilder.Entity<OrderVector>().ToTable("ordervectors");
             #endregion
