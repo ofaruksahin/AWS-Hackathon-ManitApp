@@ -11,7 +11,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ManitAppDbContext>();
 builder.Services.AddScoped<IVectorizeService, VectorizeService>();
-builder.Services.AddHostedService<SeedWorker>();
+//builder.Services.AddHostedService<SeedWorker>();
 
 var app = builder.Build();
 
